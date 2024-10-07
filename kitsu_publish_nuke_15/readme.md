@@ -9,16 +9,17 @@ This guide will help you set up the Kitsu Publisher plugin in Nuke.
 
 2. **Copy the Plugin Files**:
    - Locate the `kitsu_publisher_nuke` folder within the downloaded repository.
-   - Copy this folder to your Nuke plugins directory. This is typically found at:
+   - Copy this folder to your Nuke plugins directory, typically found at:
      - **Windows**: `C:\Users\<YourUsername>\.nuke\`
      - **macOS**: `/Users/<YourUsername>/.nuke/`
      - **Linux**: `/home/<YourUsername>/.nuke/`
 
 3. **Edit the `menu.py` File**:
    - Open (or create if it doesn’t exist) the `menu.py` file in your Nuke `.nuke` directory.
-   - Add the following line to import the Kitsu Publisher module:
+   - Add the following lines to import the Kitsu Publisher module and add the plugin path:
      ```python
-     import kitsu_publisher_nuke
+     import nuke
+     nuke.pluginAddPath('kitsu_publisher_nuke')
      ```
 
 4. **Restart Nuke**:
