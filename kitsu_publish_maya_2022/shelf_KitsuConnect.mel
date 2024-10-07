@@ -1,0 +1,43 @@
+global proc shelf_KitsuConnect () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    shelfButton
+        -enableCommandRepeat 1
+        -flexibleWidthType 1
+        -flexibleWidthValue 32
+        -enable 1
+        -width 34
+        -height 34
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "import maya.cmds as cmds\nimport os\nimport maya.OpenMayaUI as omui\n\nprint(__file__)\n\n# Try to import PySide2 and shiboken2 first, if not available, fallback to PySide6 and shiboken6\ntry:\n    from PySide2 import QtWidgets, QtCore\n    import shiboken2 as shiboken\n    print(\"Using PySide2 and shiboken2\")\nexcept ImportError:\n    try:\n        from PySide6 import QtWidgets, QtCore\n        import shiboken6 as shiboken\n        print(\"Using PySide6 and shiboken6\")\n    except ImportError:\n        raise ImportError(\"Neither PySide2/shiboken2 nor PySide6/shiboken6 is available.\")\n\n\n# Function to get the Maya main window as a QWidget\ndef get_maya_main_window():\n    main_window_ptr = omui.MQtUtil.mainWindow()\n    return shiboken.wrapInstance(int(main_window_ptr), QtWidgets.QWidget)\n\n\n# Create the main window class\nclass KitsuLoginWindow(QtWidgets.QDialog):\n    def __init__(self, parent=None):\n        super(KitsuLoginWindow, self).__init__(parent)\n\n        # Set window title and size\n        self.setWindowTitle(\"Kitsu Login\")\n        self.setFixedSize(300, 150)\n\n        # Create the form layout\n        self.layout = QtWidgets.QFormLayout(self)\n\n        # Create input fields\n        self.kitsu_url = QtWidgets.QLineEdit()\n        self.kitsu_url.setPlaceholderText(\"https://kitsu.example.com\")\n        self.username = QtWidgets.QLineEdit()\n        self.username.setPlaceholderText(\"Username\")\n        self.password = QtWidgets.QLineEdit()\n        self.password.setPlaceholderText(\"Password\")\n        self.password.setEchoMode(QtWidgets.QLineEdit.Password)  # Hide password input\n\n        # Create the submit button\n        self.submit_button = QtWidgets.QPushButton(\"Submit\")\n        self.submit_button.clicked.connect(self.submit_credentials)\n\n        # Add input fields to the form layout\n        self.layout.addRow(\"Kitsu URL:\", self.kitsu_url)\n        self.layout.addRow(\"Username:\", self.username)\n        self.layout.addRow(\"Password:\", self.password)\n        self.layout.addRow(self.submit_button)\n\n    def submit_credentials(self):\n        # Retrieve values from input fields\n        url = self.kitsu_url.text()\n        user = self.username.text()\n        pwd = self.password.text()\n\n        # Print values to console (or handle them as needed)\n        os.environ['kitsu_url'] = url\n        os.environ['kitsu_user'] = user\n        os.environ['kitsu_passw'] = pwd\n\n\n        # Close the dialog after submission\n        self.accept()\n\n\t\t\n\n\n# Check if window is already open and close it\ndef show_kitsu_login_window():\n    try:\n        for widget in QtWidgets.QApplication.topLevelWidgets():\n            if isinstance(widget, KitsuLoginWindow):\n                widget.close()\n    except Exception as e:\n        print(f\"Error closing existing window: {e}\")\n\n    # Show the login window\n    maya_main_window = get_maya_main_window()\n    window = KitsuLoginWindow(parent=maya_main_window)\n    window.exec_()\n\n\ntry:\n\turl = os.environ['kitsu_url']\n\tuser = os.environ['kitsu_user']\n\tpassw = os.environ['kitsu_passw']\nexcept:\n\tshow_kitsu_login_window()\n" 
+        -enableBackground 0
+        -backgroundColor 0 0 0 
+        -highlightColor 0.321569 0.521569 0.65098 
+        -align "center" 
+        -label "Publish Playblast to Kitsu" 
+        -labelOffset 0
+        -rotation 0
+        -flipX 0
+        -flipY 0
+        -useAlpha 1
+        -font "plainLabelFont" 
+        -imageOverlayLabel "Publish Playblast" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.5 
+        -image "playblast.png" 
+        -image1 "playblast.png" 
+        -style "iconOnly" 
+        -marginWidth 0
+        -marginHeight 1
+        -command "import maya.cmds as cmds\nimport os, sys\n\nuser_script_folder = cmds.internalVar(userScriptDir=True)\nkitsu_path = os.path.join(os.path.dirname(os.path.dirname(user_script_folder)), 'prefs','shelves','kitsu-connect')\n\nsys.path.append(kitsu_path)\nsys.path.append(os.path.join(kitsu_path, 'site-packages'))\n\nfrom publish_playblast import publish_playblast_window\nwindows = publish_playblast_window()\nwindows.show()\n\n\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 
