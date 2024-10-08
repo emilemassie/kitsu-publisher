@@ -16,7 +16,8 @@
   <property name="font">
    <font>
     <family>Verdana</family>
-    <pointsize>10</pointsize>
+    <pointsize>-1</pointsize>
+    <weight>50</weight>
     <italic>false</italic>
     <bold>false</bold>
    </font>
@@ -30,7 +31,7 @@ QWidget
 {
 	background-color: #36393f;
 	color: #ffffff;
-	font: 10pt &quot;Verdana&quot;;
+	font: 10px &quot;Verdana&quot;;
 	border-color: #051a39;
 	
 	
@@ -1325,8 +1326,7 @@ QPushButton::pressed
              <item row="4" column="1">
               <widget class="QLabel" name="status_c">
                <property name="styleSheet">
-                <string notr="true">font: 7pt &quot;Verdana&quot;;
-color:#808795;</string>
+                <string notr="true">color:#808795;</string>
                </property>
                <property name="text">
                 <string>TextLabel</string>
