@@ -5,7 +5,7 @@ a = Analysis(
     ['kitsu_publisher_standalone.py'],
     pathex=[],
     binaries=[],
-    datas=[('./icons', 'icons'), ('./ffmpeg_win', 'ffmpeg_win')],
+    datas=[('./icons', 'icons'), ('./ui', 'ui'), ('./ffmpeg_win', 'ffmpeg_win')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

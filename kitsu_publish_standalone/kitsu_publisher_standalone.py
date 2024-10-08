@@ -24,47 +24,58 @@ class FFmpegWorker(QtCore.QThread):
 
     def run(self):
         try:
+            # Set the creation flags to avoid a popup window on Windows
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+
             if len(self.input_files) == 1:
                 # Single file conversion
                 self.log_update.emit("Retrieving file...")
-                cmd = [os.path.join(os.path.dirname(__file__),'ffmpeg_win', 'bin','ffmpeg.exe'), "-y", "-i", self.input_files[0], "-c:v", "libx264", "-crf", "23", "-preset", "medium", "-c:a", "aac", "-b:a", "128k", self.output_file]
-                self.log_update.emit("Converting...")
-                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                cmd = [
+                    os.path.join(os.path.dirname(__file__), 'ffmpeg_win', 'bin', 'ffmpeg.exe'),
+                    "-y", "-i", self.input_files[0], "-c:v", "libx264",
+                    "-crf", "23", "-preset", "medium", "-c:a", "aac", "-b:a", "128k", self.output_file
+                ]
+                
             else:
                 # Image sequence conversion
                 self.log_update.emit("Retrieving image sequence files...")
                 with open("temp_file_list.txt", "w") as f:
                     for file in self.input_files:
                         f.write(f"file '{file}'\n")
-                        cmd = [
-                            "ffmpeg",
-                            "-y",  # Allow overwriting
-                            "-f", "concat",
-                            "-safe", "0",
-                            "-r", str(self.fps),
-                            "-i", "temp_file_list.txt",
-                            "-c:v", "libx264",
-                            "-pix_fmt", "yuv420p",
-                            "-r", str(self.fps),
-                            "-loglevel", "info",  # Show frame-level details.
-                            self.output_file
-                        ]
-                process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                
+                cmd = [
+                    os.path.join(os.path.dirname(__file__), 'ffmpeg_win', 'bin', 'ffmpeg.exe'),
+                    "-y", "-f", "concat", "-safe", "0", "-r", str(self.fps),
+                    "-i", "temp_file_list.txt", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", str(self.fps),
+                    "-loglevel", "info", self.output_file
+                ]
 
-            # Process the output for progress
-            for line in process.stderr:
+            # Use subprocess.Popen to capture output in real-time and avoid window popup
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True,
+                creationflags=creationflags
+            )
+
+            # Monitor the output for progress updates
+            while True:
+                line = process.stderr.readline()  # Read the stderr line by line
+                if line == '' and process.poll() is not None:
+                    break  # Exit if no more output and the process has finished
+
                 if "frame=" in line:
-                    # Extract the frame number from the output
+                    # Extract frame information and emit progress signal
                     frame_data = line.split("frame=")[1].split()[0]
                     if frame_data.isdigit():
                         self.progress.emit(int(frame_data))  # Emit progress signal with frame count
 
-            process.wait()  # Wait for the process to complete
+                # Optionally, emit other updates based on different ffmpeg output logs
+                #if line:
+                #    self.log_update.emit(line.strip())  # Emit log updates for other messages
+
+            process.wait()  # Ensure the process completes before moving on
         finally:
             if os.path.exists("temp_file_list.txt"):
                 os.remove("temp_file_list.txt")
-
-
 
             self.finished.emit()  # Emit finished signal when done
 
@@ -239,7 +250,11 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
+
+        QtCore.QDir.addSearchPath('icons', os.path.join(os.path.dirname(__file__), 'icons'))
         uic.loadUi(os.path.join(parent_folder,'ui','kitsu_publisher_standalone.ui'), self) 
+
+        
 
 
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
@@ -674,7 +689,7 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
     def on_finished(self):
         self.update_log(f'Uploaded Preview File !!!')
         #QtWidgets.QMessageBox.information(self, "Success", "Conversion completed successfully!")
-        self.progress_bar.setValue(80)  # Set progress bar to complete
+        self.progress_bar.setValue(100)  # Set progress bar to complete
         self.publish_button.setEnabled(True)  # Re-enable the Convert button
         self.publish_file_to_kitsu()
 
