@@ -9,14 +9,16 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>315</width>
-    <height>160</height>
+    <width>357</width>
+    <height>197</height>
    </rect>
   </property>
   <property name="font">
    <font>
     <family>Verdana</family>
-    <pointsize>7</pointsize>
+    <pointsize>10</pointsize>
+    <italic>false</italic>
+    <bold>false</bold>
    </font>
   </property>
   <property name="windowTitle">
@@ -28,7 +30,7 @@ QWidget
 {
 	background-color: #36393f;
 	color: #ffffff;
-	font: 7pt &quot;Verdana&quot;;
+	font: 10pt &quot;Verdana&quot;;
 	border-color: #051a39;
 	
 	
