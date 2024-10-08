@@ -5,3 +5,4 @@ kitsu_publish_standalone/dist
 kitsu_publish_standalone/kitsu_publisher_standalone.spec
 kitsu_publish_standalone/ui/bkp
 kitsu_publish_standalone/bkp
+.DS_Store
