@@ -2,7 +2,7 @@
 
 Welcome to the Kitsu DCC Publisher repository! This project provides plugins for various Digital Content Creation (DCC) applications, enabling easy publishing of preview files to Kitsu. 
 
-![image](https://github.com/user-attachments/assets/1bb2816a-d459-405c-87f5-faaf7ed4c55a)
+![image](https://github.com/user-attachments/assets/cfd4c73f-6e28-47a7-b6cc-fe7e1e903f48)
 
 ## Supported DCC Applications
 
