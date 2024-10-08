@@ -11,6 +11,19 @@ import gazu
 
 parent_folder = os.path.dirname(__file__)
 
+
+# Determine the ffmpeg directory based on the OS
+if sys.platform == "win32":  # Windows
+    ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_win', 'bin', 'ffmpeg.exe')
+elif sys.platform == "darwin":  # macOS
+    ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_osx', 'bin', 'ffmpeg')
+elif sys.platform.startswith("linux"):  # Linux
+    ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_linux', 'bin', 'ffmpeg')
+else:
+    raise EnvironmentError("Unsupported operating system")
+
+
+
 class FFmpegWorker(QtCore.QThread):
     progress = QtCore.pyqtSignal(int)
     finished = QtCore.pyqtSignal()
@@ -31,7 +44,7 @@ class FFmpegWorker(QtCore.QThread):
                 # Single file conversion
                 self.log_update.emit("Retrieving file...")
                 cmd = [
-                    os.path.join(os.path.dirname(__file__), 'ffmpeg_win', 'bin', 'ffmpeg.exe'),
+                    ffmpeg_dir,
                     "-y", "-i", self.input_files[0], "-c:v", "libx264",
                     "-crf", "23", "-preset", "medium", "-c:a", "aac", "-b:a", "128k", self.output_file
                 ]
@@ -44,7 +57,7 @@ class FFmpegWorker(QtCore.QThread):
                         f.write(f"file '{file}'\n")
                 
                 cmd = [
-                    os.path.join(os.path.dirname(__file__), 'ffmpeg_win', 'bin', 'ffmpeg.exe'),
+                    ffmpeg_dir,
                     "-y", "-f", "concat", "-safe", "0", "-r", str(self.fps),
                     "-i", "temp_file_list.txt", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", str(self.fps),
                     "-loglevel", "info", self.output_file
