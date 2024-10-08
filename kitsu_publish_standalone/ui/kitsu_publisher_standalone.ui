@@ -23,7 +23,7 @@ QWidget
 {
 	background-color: #36393f;
 	color: #ffffff;
-	font: 10pt &quot;Verdana&quot;;
+	font: &quot;Verdana&quot;;
 	border-color: #051a39;
 
 }
@@ -1478,7 +1478,7 @@ QPushButton::pressed
                   <property name="font">
                    <font>
                     <family>Verdana</family>
-                    <pointsize>10</pointsize>
+                    <pointsize>6</pointsize>
                     <italic>false</italic>
                     <bold>false</bold>
                    </font>
@@ -1496,7 +1496,7 @@ QPushButton::pressed
                   <property name="font">
                    <font>
                     <family>Verdana</family>
-                    <pointsize>10</pointsize>
+                    <pointsize>7</pointsize>
                     <italic>false</italic>
                     <bold>false</bold>
                    </font>
