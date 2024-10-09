@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>357</width>
-    <height>197</height>
+    <width>384</width>
+    <height>195</height>
    </rect>
   </property>
   <property name="font">
@@ -31,13 +31,14 @@ QWidget
 {
 	background-color: #36393f;
 	color: #ffffff;
-	font: 10px &quot;Verdana&quot;;
 	border-color: #051a39;
-	
-	
+	font: 10px &quot;Verdana&quot;;
 
 }
 
+QWidget#main_frame{
+border: 1px solid #fd8008;
+}
 
 /*-----QLabel-----*/
 QLabel
@@ -255,8 +256,9 @@ QToolButton::pressed
 /*-----QComboBox-----*/
 QComboBox
 {
-    background-color: #fd8008;
+   
     border: 1px solid;
+	border-color:#262626;
     border-radius: 3px;
     padding-left: 6px;
     color: #ffffff;
@@ -299,6 +301,14 @@ QComboBox QAbstractItemView
 
 }
 
+QComboBox::down-arrow
+{
+    image: url(icons:arrow-down.svg);
+    width: 8px;
+    height: 8px;
+}
+
+
 
 QComboBox::drop-down
 {
@@ -314,12 +324,8 @@ QComboBox::drop-down
 }
 
 
-QComboBox::down-arrow
-{
-    image: url(://arrow-down.png);
-    width: 8px;
-    height: 8px;
-}
+
+
 
 
 /*-----QSpinBox &amp; QDoubleSpinBox &amp; QDateTimeEdit-----*/
@@ -409,6 +415,28 @@ QDateTimeEdit::up-button:pressed, QDateTimeEdit::down-button::pressed
     border: 1px solid #b55d00;
 
 }
+
+
+
+QSpinBox::down-arrow,
+QDoubleSpinBox::down-arrow,
+QDateTimeEdit::down-arrow
+{
+    image: url(icons:arrow-down.svg);
+    width: 7px;
+
+}
+
+
+QSpinBox::up-arrow,
+QDoubleSpinBox::up-arrow,
+QDateTimeEdit::up-arrow
+{
+    image: url(icons:arrow-up.svg);
+    width: 7px;
+
+}
+
 
 
 /*-----QLineEdit-----*/
@@ -1014,7 +1042,7 @@ QScrollBar::sub-line:horizontal
 
 QScrollBar::right-arrow:horizontal
 {
-    image: url(://arrow-right.png);
+    image: url(icons:arrow-right.svg);
     width: 6px;
     height: 6px;
 
@@ -1023,7 +1051,7 @@ QScrollBar::right-arrow:horizontal
 
 QScrollBar::left-arrow:horizontal
 {
-    image: url(://arrow-left.png);
+    image: url(icons:arrow-left.svg);
     width: 6px;
     height: 6px;
 
@@ -1083,6 +1111,24 @@ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical
 
 }
 
+
+QScrollBar::up-arrow:vertical
+{
+    image: url(icons:arrow-up.svg);
+    width: 6px;
+    height: 6px;
+
+}
+
+
+QScrollBar::down-arrow:vertical
+{
+    image: url(icons:arrow-down.svg);
+    width: 6px;
+    height: 6px;
+
+}
+
 /*-----QProgressBar-----*/
 QProgressBar
 {
@@ -1124,6 +1170,12 @@ QProgressBar::chunk
      </property>
      <item>
       <widget class="QFrame" name="frame">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
        <property name="styleSheet">
         <string notr="true">border-color: rgb(253, 128, 8);
 background-color: rgb(253, 128, 8);
@@ -1176,10 +1228,7 @@ font-weight:600</string>
 /*-----QPushButton-----*/
 QPushButton
 {
-	
-	font: 8pt &quot;consolas&quot;;
 	background-color: rgba(255, 255, 255, 0);
-	
 	color: rgb(255, 255, 255);
 	border-style:none;
 }
@@ -1212,175 +1261,137 @@ QPushButton::pressed
     </layout>
    </item>
    <item>
-    <layout class="QVBoxLayout" name="verticalLayout_10">
-     <property name="spacing">
-      <number>6</number>
-     </property>
-     <property name="sizeConstraint">
-      <enum>QLayout::SetDefaultConstraint</enum>
-     </property>
-     <item>
-      <widget class="QFrame" name="frame_2">
-       <property name="minimumSize">
-        <size>
-         <width>313</width>
-         <height>130</height>
-        </size>
-       </property>
-       <property name="styleSheet">
-        <string notr="true">QFrame{
-	border-left:1;
-	border-right:1;
-	border-bottom:1;
-	border-style:solid;
-	border-color:#fd8008;
-}
-</string>
-       </property>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <property name="leftMargin">
+    <widget class="QWidget" name="main_frame" native="true">
+     <layout class="QVBoxLayout" name="verticalLayout_10">
+      <property name="spacing">
+       <number>8</number>
+      </property>
+      <property name="leftMargin">
+       <number>12</number>
+      </property>
+      <property name="topMargin">
+       <number>12</number>
+      </property>
+      <property name="rightMargin">
+       <number>12</number>
+      </property>
+      <property name="bottomMargin">
+       <number>12</number>
+      </property>
+      <item>
+       <layout class="QFormLayout" name="formLayout_3">
+        <property name="fieldGrowthPolicy">
+         <enum>QFormLayout::ExpandingFieldsGrow</enum>
+        </property>
+        <property name="horizontalSpacing">
          <number>8</number>
+        </property>
+        <property name="verticalSpacing">
+         <number>8</number>
+        </property>
+        <property name="leftMargin">
+         <number>12</number>
         </property>
         <property name="topMargin">
-         <number>0</number>
+         <number>12</number>
         </property>
         <property name="rightMargin">
-         <number>8</number>
+         <number>12</number>
         </property>
         <property name="bottomMargin">
-         <number>8</number>
+         <number>0</number>
         </property>
-        <item>
-         <widget class="QFrame" name="verticalFrame">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label_5">
           <property name="styleSheet">
-           <string notr="true">QFrame{
-	border-style:none
-}</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_3">
-           <item>
-            <layout class="QFormLayout" name="formLayout_3">
-             <property name="labelAlignment">
-              <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-             </property>
-             <property name="formAlignment">
-              <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-             </property>
-             <item row="2" column="0">
-              <widget class="QLabel" name="label_7">
-               <property name="styleSheet">
-                <string notr="true">font-weight:600;</string>
-               </property>
-               <property name="text">
-                <string>USERNAME</string>
-               </property>
-              </widget>
-             </item>
-             <item row="2" column="1">
-              <widget class="QLineEdit" name="t_user">
-               <property name="placeholderText">
-                <string>user@exemple.com</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="0">
-              <widget class="QLabel" name="label_8">
-               <property name="styleSheet">
-                <string notr="true">font-weight:600;</string>
-               </property>
-               <property name="text">
-                <string>PASSWORD</string>
-               </property>
-              </widget>
-             </item>
-             <item row="3" column="1">
-              <widget class="QLineEdit" name="t_pwd">
-               <property name="echoMode">
-                <enum>QLineEdit::Password</enum>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="1">
-              <widget class="QLineEdit" name="t_url">
-               <property name="text">
-                <string/>
-               </property>
-               <property name="placeholderText">
-                <string>https://kitsu.exemple.com</string>
-               </property>
-              </widget>
-             </item>
-             <item row="1" column="0">
-              <widget class="QLabel" name="label_5">
-               <property name="styleSheet">
-                <string notr="true">font-weight:600;</string>
-               </property>
-               <property name="text">
-                <string>SERVER URL</string>
-               </property>
-               <property name="textInteractionFlags">
-                <set>Qt::NoTextInteraction</set>
-               </property>
-              </widget>
-             </item>
-             <item row="4" column="1">
-              <widget class="QLabel" name="status_c">
-               <property name="styleSheet">
-                <string notr="true">color:#808795;</string>
-               </property>
-               <property name="text">
-                <string>TextLabel</string>
-               </property>
-              </widget>
-             </item>
-            </layout>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item alignment="Qt::AlignHCenter">
-         <widget class="QPushButton" name="save_button">
-          <property name="enabled">
-           <bool>true</bool>
-          </property>
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+           <string notr="true">font-weight:600;</string>
           </property>
           <property name="text">
-           <string notr="true">SAVE AND CONNECT</string>
+           <string>SERVER URL</string>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::NoTextInteraction</set>
+          </property>
+         </widget>
+        </item>
+        <item row="0" column="1">
+         <widget class="QLineEdit" name="t_url">
+          <property name="text">
+           <string/>
+          </property>
+          <property name="placeholderText">
+           <string>https://kitsu.exemple.com</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_7">
+          <property name="styleSheet">
+           <string notr="true">font-weight:600;</string>
+          </property>
+          <property name="text">
+           <string>USERNAME</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="1">
+         <widget class="QLineEdit" name="t_user">
+          <property name="placeholderText">
+           <string>user@exemple.com</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_8">
+          <property name="styleSheet">
+           <string notr="true">font-weight:600;</string>
+          </property>
+          <property name="text">
+           <string>PASSWORD</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QLineEdit" name="t_pwd">
+          <property name="echoMode">
+           <enum>QLineEdit::Password</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="3" column="1">
+         <widget class="QLabel" name="status_c">
+          <property name="styleSheet">
+           <string notr="true">color:#808795;</string>
+          </property>
+          <property name="text">
+           <string>STATUS</string>
           </property>
          </widget>
         </item>
        </layout>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <spacer name="verticalSpacer">
-     <property name="orientation">
-      <enum>Qt::Vertical</enum>
-     </property>
-     <property name="sizeType">
-      <enum>QSizePolicy::Fixed</enum>
-     </property>
-     <property name="sizeHint" stdset="0">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
-    </spacer>
+      </item>
+      <item alignment="Qt::AlignHCenter|Qt::AlignVCenter">
+       <widget class="QPushButton" name="save_button">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string notr="true">SAVE AND CONNECT</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
    </item>
   </layout>
  </widget>
  <tabstops>
-  <tabstop>t_url</tabstop>
-  <tabstop>t_user</tabstop>
-  <tabstop>t_pwd</tabstop>
   <tabstop>exit_button</tabstop>
  </tabstops>
  <resources/>

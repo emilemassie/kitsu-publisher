@@ -1,6 +1,6 @@
 import sys
 import subprocess
-import os
+import os, getpass
 import tempfile
 import json
 
@@ -22,6 +22,45 @@ elif sys.platform.startswith("linux"):  # Linux
 else:
     raise EnvironmentError("Unsupported operating system")
 
+
+from appdirs import user_config_dir
+
+# Get the current username
+username = getpass.getuser()
+
+# Define your application name and author/company name
+app_name = "kitsu-publisher"
+app_author = "kitsu-publisher-standalone"  # Optional, not needed for Linux
+
+# Get the user-specific configuration directory
+config_dir = user_config_dir(app_name, app_author)
+
+# Create the configuration directory if it doesn't exist
+os.makedirs(config_dir, exist_ok=True)
+
+# Define the path for your configuration file
+config_file = os.path.join(config_dir, f"{username}_settings.conf")
+
+print(f"Configuration file path: {config_file}")
+
+from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+
+
+class Worker(QObject):
+    finished = pyqtSignal()  # Signal to indicate when the worker is done
+    progress = pyqtSignal(str)  # Signal to send progress back to the main thread
+
+    def __init__(self, func, *args, **kwargs):
+        super().__init__()
+        self.func = func  # Store the reference to the function to be executed
+        self.args = args  # Store any positional arguments for the function
+        self.kwargs = kwargs  # Store any keyword arguments for the function
+
+    @pyqtSlot()
+    def run(self):
+        # Execute the function with any given arguments
+        self.func(*self.args, **self.kwargs)
+        self.finished.emit()  # Emit the finished signal when done
 
 
 class FFmpegWorker(QtCore.QThread):
@@ -142,26 +181,25 @@ class kitsu_settings(QtWidgets.QWidget):
         self.access_token = None
         self.settings_dict = {}
 
-        self.settings_file = os.path.join(os.path.dirname(__file__),os.getlogin()+'_settings.conf')
+        self.settings_file = config_file
 
-        print('Loading Settings : ')
+        self.parent.update_log(f"Checking for settings in : {config_file}")
         if self.load_settings():
-            print('user config loaded')
-            if self.check_connection():
-                print('connected')
-            
+            self.parent.update_log('User configuration loaded !')
+            self.check_connection()
+                
         
 
     def check_connection(self):
-        
         if self.access_token:
             token = {'access_token': self.access_token}
             gazu.client.set_host(self.url+'/api')
             gazu.client.set_tokens(token)
             user = gazu.client.get_current_user()
+            self.parent.connection_status = True
             return True
         else:
-            print('No acces token')
+            self.parent.connection_status = True
             return False
 
     def get_kitsu_token(self):
@@ -171,11 +209,8 @@ class kitsu_settings(QtWidgets.QWidget):
             gazu.client.set_host(self.url+'/api')
             gazu.log_in(self.user, self.t_pwd.text())
             self.access_token = gazu.refresh_token()['access_token']
-            print ('Got token : '+ self.access_token)
             return self.access_token
         except Exception as eee:
-            print('Cannot Authenticate : \n')
-            print(str(eee))
             self.setConnectStatus(False)
             self.status_c.setText('<span style="color:red;">ERROR CONNECTING</span>'+str(eee))
             self.parent.update_log('<span style="color:red;">ERROR CONNECTING</span>'+str(eee))
@@ -267,7 +302,26 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         QtCore.QDir.addSearchPath('icons', os.path.join(os.path.dirname(__file__), 'icons'))
         uic.loadUi(os.path.join(parent_folder,'ui','kitsu_publisher_standalone.ui'), self) 
 
-        
+        self.thread = QThread()
+
+        # Create a Worker object and pass the print_hello function
+        self.worker = Worker(self.refresh_tree)
+
+        # Move the worker to the thread
+        self.worker.moveToThread(self.thread)
+
+        # Connect signals and slots
+        self.thread.started.connect(self.worker.run)          # Start the worker's run method when the thread starts
+        self.worker.finished.connect(self.thread.quit)        # Quit the thread when the worker finishes
+        #self.worker.finished.connect(self.worker.deleteLater) # Clean up the worker object
+        #self.thread.finished.connect(self.thread.deleteLater) # Clean up the thread object
+
+
+
+
+        self.context = None
+        self.ks = kitsu_settings(self)
+        self.is_scanning = True
 
 
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint | QtCore.Qt.WindowMinimizeButtonHint)
@@ -288,12 +342,23 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
 
         self.exit_button.released.connect(self.close)
         self.settings_button.released.connect(self.show_settings)
-        self.connect_status = None
-        self.ks = kitsu_settings(self)
+        self.connection_status = None
+
+
+
+        # Load your image
+        self.pixmap = QtGui.QPixmap(os.path.join(os.path.dirname(__file__),'icons', 'loading.svg'))
+        self.image_label.setPixmap(self.pixmap)
+        self.image_label.setFixedSize(20,20)
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.rotate_label)
+        self.timer.start(10)  # Rotate every second
+
+        self.angle = 0  # Initial angle
 
 
         self.input_files = None
-        self.context = None
+        
         #self.t_task_stat.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
 
@@ -311,9 +376,7 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         self.publish_button.released.connect(self.launch_publisher)
         #self.file_drop.mouseDoubleClickEvent.connect(self.file_browse)
 
-        if self.ks.check_connection():
-            self.update_log('User Config Settings Loaded !!!')
-            self.build_tasks_tree()
+        self.ks.check_connection()
 
 
 
@@ -416,7 +479,20 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
             self.setCursor(Qt.ArrowCursor)
 
 
+    def rotate_label(self):
+            # Increment the angle by 15 degrees
+        self.angle += 1  # Rotate by 5 degrees
+        if self.angle >= 360:
+            self.angle = 0
 
+        # Rotate the pixmap
+        transform = QtGui.QTransform().rotate(self.angle)
+        rotated_pixmap = self.pixmap.transformed(transform)
+        resized_pixmap = rotated_pixmap.scaled(self.image_label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+
+        # Update the QLabel with the rotated pixmap
+        self.image_label.setPixmap(resized_pixmap)
+            
 
     def set_files(self, files):
         self.input_files = sorted(files)
@@ -427,7 +503,6 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
             self.file_manager.setText(f'{os.path.basename(files[0])}')
         self.check_button_enable()
         
-
     def find_or_create_child(self, parent_item, child_name):
         """ Helper function to find a child with the given name or create a new one """
         for i in range(parent_item.childCount()):
@@ -464,18 +539,36 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
             self.context = None
         self.check_button_enable()
 
-        
     def build_tasks_tree(self):
+
+        
+        if self.thread is not None and self.thread.isRunning():
+            self.is_scanning = False
+
+            self.thread.quit()  # Stop the thread's event loop
+            self.thread.wait()  # Wait until the thread has finished
+
+        self.is_scanning = True
+        self.thread.start()
+
+
+    def refresh_tree(self):
         self.tree_widget.clear()
         self.t_task_stat.clear()
+        self.image_label.setVisible(True)
+
+        self.update_log('')
+        self.update_log('Refreshing task list')
+
+        if not self.is_scanning:
+            self.update_log('User interupted task loading !', 'red')
+            return False
 
         for stat in reversed(gazu.task.all_task_statuses()):
             self.t_task_stat.addItem(stat['name'])
 
 
-        if self.connect_status:
-            self.update_log('Building Tree View...')
-
+        if self.connection_status:
             if self.show_only_my_tasks.isChecked():
                 tasks = gazu.user.all_tasks_to_do()
             else:
@@ -488,10 +581,17 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
                     g_tasks = gazu.task.all_tasks_for_project(project)
                     tasks.extend(g_tasks)  # Add tasks to the all_tasks list
 
-            self.update_log('Found '+str(len(tasks))+' tasks')
+            
+            self.update_log('Found '+str(len(tasks))+' tasks.\nGathering Kitsu informations...')
+            if len(tasks)>40:
+                self.update_log("This may take a while...",'orange')
 
             data = []
             for task in tasks:
+                if not self.is_scanning:
+                    self.update_log('User interupted task loading !', 'red')
+                    self.image_label.setVisible(False)
+                    return False
                 task = gazu.task.get_task(task)
                 try:
                     seq = task['sequence']['name']
@@ -511,6 +611,7 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
                 data.append(dd)
 
             root_items = {}
+            self.update_log('Building Tree View...')
             for item_data in data:
                 # Create hierarchy: Project > Type > Sequence > Element > Task
                 project_name = item_data.get('project', 'Unknown Project')  # Add a project key
@@ -550,91 +651,21 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
                 # Add Task item under the Element level
                 element_item.addChild(task_item)
 
+            self.update_log('Task Tree Refreshed !', 'green')
+            self.update_log('')
+            self.image_label.setVisible(False)
+
 
     def show_settings(self):
         self.update_log('Open Connection Settings')
         self.ks.show()
 
+    def update_log(self, message, color=None):
+        if color:
+            self.log_view.append(f'<p style="color:{color};">'+message+'</p> ')
+        else:
+            self.log_view.append(message)  # Append message to log view
 
-
-
-        #self.init_ui()
-
-    def init_ui(self):
-        
-          # Increased window size
-
-        layout = QtWidgets.QVBoxLayout()
-        box_h =  QtWidgets.QHBoxLayout()
-        box_v = QtWidgets.QVBoxLayout()
-
-        
-
-
-        # Drop zone for single file
-        self.single_file_label = DropZoneLabel("Drag & Drop Single Media File Here")
-        self.single_file_label.fileSelected.connect(self.set_single_file)
-        self.single_file_label.setSizePolicy(1,1)
-        box_h.addWidget(self.single_file_label)
-
-        # Drop zone for image sequence
-        self.sequence_label = DropZoneLabel("Drag & Drop Image Sequence Here")
-        self.sequence_label.fileSelected.connect(self.set_image_sequence)
-        box_h.addWidget(self.sequence_label)
-
-        lay = QtWidgets.QHBoxLayout()
-
-        spacer = QtWidgets.QSpacerItem(0, 0, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
-        lay.addItem(spacer)
-        self.fps_label = QtWidgets.QLabel("FPS:")
-        self.fps_label.setSizePolicy(0,0)
-        lay.addWidget(self.fps_label)
-
-        self.fps_entry = QtWidgets.QLineEdit("24")
-        self.fps_entry.setAlignment(Qt.AlignmentFlag.AlignRight)
-        self.fps_entry.setSizePolicy(QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Policy.Minimum, QtWidgets.QSizePolicy.Policy.Fixed))
-        double_validator = QDoubleValidator(self.fps_entry)
-        double_validator.setNotation(QDoubleValidator.Notation.StandardNotation)
-        self.fps_entry.setValidator(double_validator)
-        lay.addWidget(self.fps_entry)
-
-        box_v.addLayout(box_h)
-        box_v.addLayout(lay)
-        layout.addLayout(box_v)
-
-
-        # Add a separator
-        #separator = QtWidgets.QFrame()
-        #separator.setFrameShape(QtWidgets.QFrame.Shape.HLine)  # Use QFrame.Shape.VLine for a vertical separator
-        #separator.setFrameShadow(QtWidgets.QFrame.Shadow.Sunken)
-        #layout.addWidget(separator)
-
-        self.convert_btn = QtWidgets.QPushButton("Convert")
-        self.convert_btn.clicked.connect(self.convert)
-        layout.addWidget(self.convert_btn)
-
-        # Progress bar
-        self.progress_bar = QtWidgets.QProgressBar()
-        self.progress_bar.setValue(0)
-        layout.addWidget(self.progress_bar)
-
-        # Log view
-        self.log_view = QtWidgets.QTextEdit()
-        self.log_view.setReadOnly(True)  # Make the log view read-only
-        self.log_view.setMaximumHeight(120)  # Limit height of log view
-        layout.addWidget(self.log_view)
-
-        # Spacer to push log view to the bottom
-        #spacer = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        #layout.addItem(spacer)
-
-        self.setLayout(layout)
-
-        self.input_files = []
-        self.output_file = ""
-
-    def update_log(self, message):
-        self.log_view.append(message)  # Append message to log view
         self.log_view.moveCursor(QtGui.QTextCursor.End)
 
 
@@ -664,12 +695,9 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
             return False
         self.progress_bar.setValue(80)
 
-
-
     def convert(self):
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
         self.output_file = temp_file.name
-        print(self.output_file)
 
         if not self.input_files or not self.output_file:
             QtWidgets.QMessageBox.critical(self, "Error", "Please select input and output files")

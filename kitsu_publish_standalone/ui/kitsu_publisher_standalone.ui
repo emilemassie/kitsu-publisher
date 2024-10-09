@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>702</width>
-    <height>721</height>
+    <width>685</width>
+    <height>710</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -24,7 +24,7 @@ QWidget
 	background-color: #36393f;
 	color: #ffffff;
 	border-color: #051a39;
-	font: 10px &quot;Verdana&quot;;
+	font:  10px &quot;Verdana&quot;;
 
 }
 
@@ -1231,9 +1231,8 @@ font-weight:600</string>
 QPushButton
 {
 	
-	font: 8pt &quot;consolas&quot;;
+	font: 8px;
 	background-color: rgba(255, 255, 255, 0);
-	
 	color: rgb(255, 255, 255);
 	border-style:none;
 }
@@ -1447,14 +1446,70 @@ QPushButton::pressed
                <number>6</number>
               </property>
               <item>
-               <widget class="QCheckBox" name="show_only_my_tasks">
-                <property name="text">
-                 <string>Show only my tasks (showing all tasks can take a while)</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
-                </property>
-               </widget>
+               <layout class="QHBoxLayout" name="horizontalLayout_8">
+                <item>
+                 <widget class="QCheckBox" name="show_only_my_tasks">
+                  <property name="text">
+                   <string>Show only my tasks (showing all tasks can take a while)</string>
+                  </property>
+                  <property name="checked">
+                   <bool>true</bool>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QFrame" name="gridFrame">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                  <layout class="QGridLayout" name="gridLayout">
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="spacing">
+                    <number>0</number>
+                   </property>
+                   <item row="0" column="0">
+                    <widget class="QLabel" name="image_label">
+                     <property name="sizePolicy">
+                      <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                       <horstretch>0</horstretch>
+                       <verstretch>0</verstretch>
+                      </sizepolicy>
+                     </property>
+                     <property name="scaledContents">
+                      <bool>false</bool>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
               </item>
               <item>
                <widget class="QTreeWidget" name="tree_widget">
@@ -1620,14 +1675,8 @@ margin:8;
                </widget>
               </item>
               <item>
-               <layout class="QFormLayout" name="formLayout_4">
-                <property name="labelAlignment">
-                 <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-                </property>
-                <property name="formAlignment">
-                 <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-                </property>
-                <item row="0" column="0">
+               <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,1">
+                <item>
                  <widget class="QLabel" name="label_10">
                   <property name="styleSheet">
                    <string notr="true">font-weight:600;</string>
@@ -1637,7 +1686,7 @@ margin:8;
                   </property>
                  </widget>
                 </item>
-                <item row="0" column="1">
+                <item>
                  <widget class="QComboBox" name="t_task_stat"/>
                 </item>
                </layout>
