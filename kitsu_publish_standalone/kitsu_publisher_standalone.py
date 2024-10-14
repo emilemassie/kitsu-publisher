@@ -704,9 +704,10 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
             return
 
         try:
-            fps = float(self.fps_entry.text())
+            fps = float(self.fps_entry.text().replace(',', '.'))
             if fps <= 0:
-                raise ValueError("FPS must be a positive number")
+                QtWidgets.QMessageBox.critical(self, "Error", f"FPS must be a positive number: {e}")
+                return
         except ValueError as e:
             QtWidgets.QMessageBox.critical(self, "Error", f"Invalid FPS value: {e}")
             return
