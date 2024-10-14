@@ -43,7 +43,7 @@ config_file = os.path.join(config_dir, f"{username}_settings.conf")
 
 print(f"Configuration file path: {config_file}")
 
-from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
 
 class Worker(QObject):
