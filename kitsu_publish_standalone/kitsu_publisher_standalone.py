@@ -4,24 +4,39 @@ import os, getpass
 import tempfile
 import json
 
+import requests
+import zipfile
+import shutil
+
 from PyQt5 import QtWidgets, QtCore, QtGui, uic
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtWidgets import QMessageBox
 import gazu
 
+
+
+_VERSION = "1.0.4"
 parent_folder = os.path.dirname(__file__)
 
+if getattr(sys, 'frozen', False):
+    basedir = sys._MEIPASS
+else:
+    basedir = os.path.dirname(os.path.abspath(__file__))
+    basedir = str(basedir)
+
+ffmpeg_exec = basedir+'/ffmpeg.exe'
 
 # Determine the ffmpeg directory based on the OS
-if sys.platform == "win32":  # Windows
-    ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_win', 'bin', 'ffmpeg.exe')
-elif sys.platform == "darwin":  # macOS
-    ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_osx', 'bin', 'ffmpeg')
-elif sys.platform.startswith("linux"):  # Linux
-    ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_linux', 'bin', 'ffmpeg')
-else:
-    raise EnvironmentError("Unsupported operating system")
-
+# if sys.platform == "win32":  # Windows
+#     ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_win', 'bin', 'ffmpeg.exe')
+# elif sys.platform == "darwin":  # macOS
+#     ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_osx', 'bin', 'ffmpeg')
+# elif sys.platform.startswith("linux"):  # Linux
+#     ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_linux', 'bin', 'ffmpeg')
+# else:
+#     raise EnvironmentError("Unsupported operating system")
+ffmpeg_dir = ffmpeg_exec
 
 from appdirs import user_config_dir
 
@@ -44,6 +59,35 @@ config_file = os.path.join(config_dir, f"{username}_settings.conf")
 print(f"Configuration file path: {config_file}")
 
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+
+
+
+class Updater(QThread):
+    update_progress = pyqtSignal(str)
+    update_finished = pyqtSignal(bool, str)
+
+    def __init__(self, github_repo, updatefile):
+        QThread.__init__(self)
+        self.github_repo = github_repo
+        self.zip_ref = None
+        self.updatefile = updatefile
+
+    def run(self):
+        try:
+            response = requests.get(f"https://api.github.com/repos/{self.github_repo}")
+            self.latest_release = response.json()
+            
+            # Download the update
+            self.update_progress.emit("<b>Downloading update...</b>")
+            zip_url = self.latest_release['assets'][0]['browser_download_url']
+            r = requests.get(zip_url)
+            with open(self.updatefile, 'wb') as f:
+                f.write(r.content)
+
+            self.update_finished.emit(True, "New Version Downloaded ! Please close and replace the application.")
+        except Exception as e:
+            raise e
+            self.update_finished.emit(False, f"Update failed: {str(e)}")
 
 
 class Worker(QObject):
@@ -83,7 +127,7 @@ class FFmpegWorker(QtCore.QThread):
                 # Single file conversion
                 self.log_update.emit("Retrieving file...")
                 cmd = [
-                    ffmpeg_dir,
+                    ffmpeg_exec,
                     "-y", "-i", self.input_files[0], "-c:v", "libx264",
                     "-crf", "23", "-preset", "medium", "-c:a", "aac", "-b:a", "128k", self.output_file
                 ]
@@ -134,8 +178,9 @@ class FFmpegWorker(QtCore.QThread):
 class DropZoneLabel(QtWidgets.QLabel):
     fileSelected = QtCore.pyqtSignal(list)  # Signal to emit selected files
 
-    def __init__(self, title):
+    def __init__(self, title, parent):
         super().__init__(title)
+        self.parent = parent
         self.setAcceptDrops(True)
         self.setStyleSheet("border: 1.5px dashed #888; padding: 80px 20px;")
         self.setAlignment(QtCore.Qt.AlignCenter)
@@ -148,6 +193,13 @@ class DropZoneLabel(QtWidgets.QLabel):
 
     def dropEvent(self, event):
         files = [url.toLocalFile() for url in event.mimeData().urls()]
+        for i in files:
+            if os.path.isdir(i):
+                self.parent.update_log(f"{i} is a directory, adding all files in directory")
+                files.remove(i)
+                for g in os.listdir(i):
+                    files.append(g)
+
         self.fileSelected.emit(files)  # Emit the selected files
 
     def mouseDoubleClickEvent(self, event):
@@ -188,8 +240,6 @@ class kitsu_settings(QtWidgets.QWidget):
             self.parent.update_log('User configuration loaded !')
             self.check_connection()
                 
-        
-
     def check_connection(self):
         if self.access_token:
             token = {'access_token': self.access_token}
@@ -280,10 +330,6 @@ class kitsu_settings(QtWidgets.QWidget):
         self.parent.update_log('Saved Settings')
 
     def mousePressEvent(self, event):
-
-
-
-
         if event.button() == Qt.LeftButton:
             self.old_position = event.globalPos() - self.frameGeometry().topLeft()
             event.accept()
@@ -298,9 +344,13 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-
         QtCore.QDir.addSearchPath('icons', os.path.join(os.path.dirname(__file__), 'icons'))
         uic.loadUi(os.path.join(parent_folder,'ui','kitsu_publisher_standalone.ui'), self) 
+
+        # updates
+        self.current_version = _VERSION  # Set your current version here
+        self.github_repo = "emilemassie/kitsu-publisher/releases/tags/standalone"  # Set your GitHub repo here
+        self.check_for_updates()
 
         self.thread = QThread()
 
@@ -315,8 +365,6 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         self.worker.finished.connect(self.thread.quit)        # Quit the thread when the worker finishes
         #self.worker.finished.connect(self.worker.deleteLater) # Clean up the worker object
         #self.thread.finished.connect(self.thread.deleteLater) # Clean up the thread object
-
-
 
 
         self.context = None
@@ -344,8 +392,6 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         self.settings_button.released.connect(self.show_settings)
         self.connection_status = None
 
-
-
         # Load your image
         self.pixmap = QtGui.QPixmap(os.path.join(os.path.dirname(__file__),'icons', 'loading.svg'))
         self.image_label.setPixmap(self.pixmap)
@@ -366,7 +412,7 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         
         self.show_only_my_tasks.stateChanged.connect(self.build_tasks_tree)
 
-        self.file_manager = DropZoneLabel('test')
+        self.file_manager = DropZoneLabel('test', self)
         self.file_manager.setText(self.file_drop.text())  # Keep the existing text
         self.file_manager.setGeometry(self.file_drop.geometry())
         self.file_manager.fileSelected.connect(self.set_files)
@@ -378,6 +424,50 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
 
         self.ks.check_connection()
 
+
+    def check_for_updates(self):
+        self.update_log('Checking for updates...')
+        try:
+            response = requests.get(f"https://api.github.com/repos/{self.github_repo}")
+            self.latest_release = response.json()
+            latest_version = self.latest_release['name'].split('v')[-1]
+
+            print(self.current_version,latest_version)
+
+            if latest_version > self.current_version:
+                reply = QMessageBox.question(self, 'Update Available', 
+                                     f"{self.latest_release['name']} is available. Do you want to update?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+                if reply == QMessageBox.Yes:
+                    self.start_update()
+                else:
+                    return
+            else:
+                return
+        except Exception as e:
+            QMessageBox.warning(self, "Update Check Failed", f"Error: {str(e)}")
+
+
+    def on_update_progress(self, message):
+        self.update_log(message)
+
+    def on_update_finished(self, success, message):
+        if success:
+            QMessageBox.information(self, "Update Successful", message)
+        else:
+            QMessageBox.warning(self, "Update Failed", message)
+        #self.update_button.setText("Check for Updates")
+        
+        
+    def start_update(self):
+        update_file, _ = QtWidgets.QFileDialog.getSaveFileName(self, "Select Update File", self.latest_release['name'], "Zip Files (*.zip)")
+        if not update_file:
+            return
+        self.updater = Updater(self.github_repo, update_file)
+        self.updater.update_progress.connect(self.on_update_progress)
+        self.updater.update_finished.connect(self.on_update_finished)
+        self.updater.start()
+        
 
 
     def mousePressEvent(self, event):
@@ -566,6 +656,7 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
 
         for stat in reversed(gazu.task.all_task_statuses()):
             self.t_task_stat.addItem(stat['name'])
+            self.t_task_stat.setCurrentIndex(0)
 
 
         if self.connection_status:

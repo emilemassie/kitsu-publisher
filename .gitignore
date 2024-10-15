@@ -5,4 +5,6 @@ kitsu_publish_standalone/dist
 kitsu_publish_standalone/kitsu_publisher_standalone.spec
 kitsu_publish_standalone/ui/bkp
 kitsu_publish_standalone/bkp
+kitsu_publish_standalone/dependencies
+kitsu_publish_standalone/ffmpeg.exe
 .DS_Store
