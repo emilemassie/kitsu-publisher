@@ -10,17 +10,25 @@ import shutil
 
 from PyQt5 import QtWidgets, QtCore, QtGui, uic
 from PyQt5.QtGui import QDoubleValidator
-from PyQt5.QtCore import Qt, QPoint
+from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
-import gazu
 
+import gazu
 
 
 _VERSION = "1.0.5"
 parent_folder = os.path.dirname(__file__)
 
 if getattr(sys, 'frozen', False):
-    basedir = sys._MEIPASS
+
+    if sys.platform == "win32":  # Windows
+        basedir = sys._MEIPASS
+    elif sys.platform == "darwin":  # macOS
+        basedir = os.path.dirname(os.path.abspath(__file__))
+    elif sys.platform.startswith("linux"):  # Linux
+        basedir = os.path.dirname(os.path.abspath(__file__))
+        raise EnvironmentError("Unsupported operating system")
+    
 else:
     basedir = os.path.dirname(os.path.abspath(__file__))
     basedir = str(basedir)
@@ -56,10 +64,6 @@ config_file = os.path.join(config_dir, f"{username}_settings.conf")
 
 print(f"Configuration file path: {config_file}")
 
-from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
-
-
-
 class Updater(QThread):
     update_progress = pyqtSignal(str)
     update_finished = pyqtSignal(bool, str)
@@ -87,6 +91,53 @@ class Updater(QThread):
             raise e
             self.update_finished.emit(False, f"Update failed: {str(e)}")
 
+class T_Extractor(QtCore.QThread):
+    finished = QtCore.pyqtSignal(QtGui.QPixmap)
+    log_update = QtCore.pyqtSignal(str)  # Signal to update the log
+
+    def __init__(self, input_file):
+        super().__init__()
+        self.input_file = input_file
+        self.output_file = tempfile.TemporaryFile()
+
+
+    def run(self):
+        try:
+            # Set the creation flags to avoid a popup window on Windows
+            creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            file = self.input_file
+            self.log_update.emit("Computing Preview...")
+
+            with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as temp_jpeg:
+                temp_jpeg_path = temp_jpeg.name
+
+
+            # ffmpeg command to output a single frame as a JPEG to the temporary file
+            cmd = [
+                ffmpeg_exec,
+                "-apply_trc", "bt709",
+                "-y","-i", file,
+                "-vframes", "1",  # Output only 1 frame
+                "-q:v", "2",      # Quality level for JPEG (lower is better, max quality = 2)
+                "-loglevel", "info",
+                temp_jpeg_path
+            ]
+            # Use subprocess.Popen to capture output in real-time and avoid window popup
+            process = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True,
+                creationflags=creationflags
+            )
+            while True:
+                line = process.stderr.readline()  # Read the stderr line by line
+                if line == '' and process.poll() is not None:
+                    break  # Exit if no more output and the process has finished
+            process.wait()  # Ensure the process completes before moving on
+        finally:
+            pixmap = QtGui.QPixmap(temp_jpeg_path)
+            if os.path.exists(temp_jpeg_path):
+                os.remove(temp_jpeg_path)
+            self.finished.emit(pixmap)  # Emit finished signal when done
+
 
 class Worker(QObject):
     finished = pyqtSignal()  # Signal to indicate when the worker is done
@@ -103,7 +154,6 @@ class Worker(QObject):
         # Execute the function with any given arguments
         self.func(*self.args, **self.kwargs)
         self.finished.emit()  # Emit the finished signal when done
-
 
 class FFmpegWorker(QtCore.QThread):
     progress = QtCore.pyqtSignal(int)
@@ -186,8 +236,11 @@ class DropZoneLabel(QtWidgets.QLabel):
         super().__init__(title)
         self.parent = parent
         self.setAcceptDrops(True)
-        self.setStyleSheet("border: 1.5px dashed #888; padding: 80px 20px;")
-        self.setAlignment(QtCore.Qt.AlignCenter)
+        self.setStyleSheet("border: 1.5px dashed #888;")
+        self.setScaledContents(False)  # Prevent automatic scaling of the pixmap
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)  # Center the pixmap
+        self.setMinimumSize(200,200)
+        
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
@@ -371,9 +424,6 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         # Connect signals and slots
         self.thread.started.connect(self.worker.run)          # Start the worker's run method when the thread starts
         self.worker.finished.connect(self.thread.quit)        # Quit the thread when the worker finishes
-        #self.worker.finished.connect(self.worker.deleteLater) # Clean up the worker object
-        #self.thread.finished.connect(self.thread.deleteLater) # Clean up the thread object
-
 
         self.context = None
         self.ks = kitsu_settings(self)
@@ -415,7 +465,6 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         
         #self.t_task_stat.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
 
-
         self.tree_widget.itemDoubleClicked.connect(self.on_item_double_clicked)
         
         self.show_only_my_tasks.stateChanged.connect(self.build_tasks_tree)
@@ -453,7 +502,6 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Update Check Failed", f"Error: {str(e)}")
 
-
     def on_update_progress(self, message):
         self.update_log(message)
 
@@ -474,8 +522,6 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         self.updater.update_finished.connect(self.on_update_finished)
         self.updater.start()
         
-
-
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             # Detect if we're clicking in a resize area
@@ -594,10 +640,96 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         self.input_files = sorted(files)
         self.update_log('Selected '+str(len(files))+' files')
         if len(files)>1:
-            self.file_manager.setText(f'{str(len(files))} files\n\n{os.path.basename(files[0])}\n[...]\n{os.path.basename(files[-1])}')
+            self.file_list_text = f'{str(len(files))} files\n\n{os.path.basename(files[0])}\n[...]\n{os.path.basename(files[-1])}'
         else:
-            self.file_manager.setText(f'{os.path.basename(files[0])}')
+            self.file_list_text = f'{os.path.basename(files[0])}'
+
+        self.t_worker = T_Extractor(files[0])
+        self.t_worker.log_update.connect(self.update_log)          # Start the worker's run method when the thread starts
+        self.t_worker.finished.connect(self.set_thumbnail) 
+        self.t_worker.start()
+
+        
         self.check_button_enable()
+
+    def set_thumbnail(self, thumbnail):
+        label_width = self.file_manager.width()
+        label_height = self.file_manager.height()
+
+        # Scale the pixmap to fit inside the QLabel's dimensions
+        scaled_pixmap = thumbnail.scaled(label_width, label_height, Qt.AspectRatioMode.KeepAspectRatio)
+        #qp = QtGui.QPainter(scaled_pixmap)
+ 
+        
+        #border_pen = QtGui.QPen(QtGui.QColor("black"))
+        #qp.setPen(border_pen)
+        #print(scaled_pixmap.rect)
+        #qp.drawText(scaled_pixmap.width()+2,scaled_pixmap.height()+2, Qt.AlignCenter, f'{self.file_list_text}')
+
+        # Set the pen color for the text to white
+        #qp.setPen(QtGui.QColor("white"))
+        #qp.drawText(scaled_pixmap.rect(), Qt.AlignCenter, f'{self.file_list_text}')
+        # End painting
+        #qp.end()
+
+        # Create a QPainter object to draw on the pixmap
+        # Create a QPainter object to draw on the pixmap
+        painter = QtGui.QPainter(scaled_pixmap)
+
+        # Set the pen color for the border to black
+        border_pen = QtGui.QPen(QtGui.QColor("black"))
+        painter.setPen(border_pen)
+
+        # Define the text with potential newlines
+        text = str(self.file_list_text)
+
+        # Split the text into lines
+        lines = text.split('\n')
+
+        # Get the bounding rectangle of the pixmap
+        rect = scaled_pixmap.rect()
+
+        # Calculate the initial vertical position to center the text
+        line_height = painter.fontMetrics().height()  # Get the height of a single line of text
+        total_height = line_height * len(lines)  # Total height of all lines
+        start_y = (rect.height() - total_height) // 2  # Centering Y position
+
+        # Draw the outline by drawing the text in black at slightly offset positions
+        offsets = [-1, 0, 1]  # Offsets for x and y directions
+
+        for i, line in enumerate(lines):
+            # Calculate the position for each line
+            
+            i=i+1
+            x = (rect.width() - painter.boundingRect(rect, 0, line).width()) // 2  # Centering X
+            y = start_y + i * line_height  # Calculate Y position for the current line
+
+            # Draw the outline for each line
+            painter.setPen(QtGui.QColor("black"))
+            for dx in offsets:
+                for dy in offsets:
+                    if dx != 0 or dy != 0:  # Avoid drawing in the center again
+                        painter.drawText(x + dx, y + dy, line)
+
+            # Set the pen color for the text to white
+            painter.setPen(QtGui.QColor("white"))
+
+            # Draw the text on top in white
+            painter.drawText(x, y, line)
+
+        # End painting
+        painter.end()
+
+
+        
+
+
+
+        # Set the scaled pixmap to the QLabel
+        #self.file_manager.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.file_manager.setPixmap(scaled_pixmap)
+        #self.file_manager.setPixmap(thumbnail)
+        
         
     def find_or_create_child(self, parent_item, child_name):
         """ Helper function to find a child with the given name or create a new one """

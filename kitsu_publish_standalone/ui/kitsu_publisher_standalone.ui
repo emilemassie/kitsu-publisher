@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>685</width>
-    <height>710</height>
+    <width>647</width>
+    <height>734</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1594,7 +1594,7 @@ margin:8;
                    <enum>QFrame::NoFrame</enum>
                   </property>
                   <property name="text">
-                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Drag &amp;amp; Drop&lt;/p&gt;&lt;p&gt;(Single Video File)&lt;br/&gt;(Image Sequence Here)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Drag &amp;amp; Drop&lt;br/&gt;&lt;/p&gt;&lt;p&gt;(Single Video File)&lt;br/&gt;(Image Sequence Here)&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                   </property>
                   <property name="alignment">
                    <set>Qt::AlignCenter</set>
