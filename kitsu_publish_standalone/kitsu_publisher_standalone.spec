@@ -5,7 +5,7 @@ a = Analysis(
     ['kitsu_publisher_standalone.py'],
     pathex=[],
     binaries=[],
-    datas=[('./icons', 'icons'), ('./ui', 'ui'), ('./ffmpeg', '.')],
+    datas=[('./icons', 'icons'), ('./ui', 'ui'), ('./dependencies/win/ffmpeg.exe', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -35,11 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['icons/icon.png'],
-)
-app = BUNDLE(
-    exe,
-    name='kitsu_publisher_standalone.app',
-    icon='./icons/icon.png',
-    bundle_identifier=None,
+    icon=['icons\\icon.png'],
 )

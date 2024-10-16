@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import QMessageBox
 import gazu
 
 
-_VERSION = "1.0.5"
+_VERSION = "1.0.6"
 parent_folder = os.path.dirname(__file__)
 
 if getattr(sys, 'frozen', False):
