@@ -16,7 +16,7 @@ import gazu
 
 
 
-_VERSION = "1.0.4"
+_VERSION = "1.0.5"
 parent_folder = os.path.dirname(__file__)
 
 if getattr(sys, 'frozen', False):
@@ -119,6 +119,7 @@ class FFmpegWorker(QtCore.QThread):
         self.fps = fps
 
     def run(self):
+        print(self.input_files)
         try:
             # Set the creation flags to avoid a popup window on Windows
             creationflags = subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
@@ -141,10 +142,16 @@ class FFmpegWorker(QtCore.QThread):
                 
                 cmd = [
                     ffmpeg_dir,
+                    "-apply_trc","bt709",
                     "-y", "-f", "concat", "-safe", "0", "-r", str(self.fps),
-                    "-i", "temp_file_list.txt", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", str(self.fps),
-                    "-loglevel", "info", self.output_file
+                    "-i", "temp_file_list.txt",
+                    "-c:v", "libx264",
+                    "-pix_fmt", "yuv420p",
+                    "-r", str(self.fps),  # Linear to BT.709 with gamma correction
+                    "-loglevel", "info",
+                    self.output_file
                 ]
+
 
             # Use subprocess.Popen to capture output in real-time and avoid window popup
             process = subprocess.Popen(
@@ -157,7 +164,6 @@ class FFmpegWorker(QtCore.QThread):
                 line = process.stderr.readline()  # Read the stderr line by line
                 if line == '' and process.poll() is not None:
                     break  # Exit if no more output and the process has finished
-
                 if "frame=" in line:
                     # Extract frame information and emit progress signal
                     frame_data = line.split("frame=")[1].split()[0]
@@ -198,7 +204,7 @@ class DropZoneLabel(QtWidgets.QLabel):
                 self.parent.update_log(f"{i} is a directory, adding all files in directory")
                 files.remove(i)
                 for g in os.listdir(i):
-                    files.append(g)
+                    files.append(os.path.join(i,g))
 
         self.fileSelected.emit(files)  # Emit the selected files
 
@@ -431,8 +437,6 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
             response = requests.get(f"https://api.github.com/repos/{self.github_repo}")
             self.latest_release = response.json()
             latest_version = self.latest_release['name'].split('v')[-1]
-
-            print(self.current_version,latest_version)
 
             if latest_version > self.current_version:
                 reply = QMessageBox.question(self, 'Update Available', 
