@@ -7,4 +7,5 @@ kitsu_publish_standalone/ui/bkp
 kitsu_publish_standalone/bkp
 kitsu_publish_standalone/dependencies
 kitsu_publish_standalone/ffmpeg.exe
+kitsu_publish_standalone/ffmpeg
 .DS_Store

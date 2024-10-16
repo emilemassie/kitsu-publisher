@@ -25,17 +25,15 @@ else:
     basedir = os.path.dirname(os.path.abspath(__file__))
     basedir = str(basedir)
 
-ffmpeg_exec = basedir+'/ffmpeg.exe'
-
 # Determine the ffmpeg directory based on the OS
-# if sys.platform == "win32":  # Windows
-#     ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_win', 'bin', 'ffmpeg.exe')
-# elif sys.platform == "darwin":  # macOS
-#     ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_osx', 'bin', 'ffmpeg')
-# elif sys.platform.startswith("linux"):  # Linux
-#     ffmpeg_dir = os.path.join(os.path.dirname(__file__), 'ffmpeg_linux', 'bin', 'ffmpeg')
-# else:
-#     raise EnvironmentError("Unsupported operating system")
+if sys.platform == "win32":  # Windows
+    ffmpeg_exec = basedir+'/ffmpeg.exe'
+elif sys.platform == "darwin":  # macOS
+    ffmpeg_exec = basedir+'/ffmpeg'
+elif sys.platform.startswith("linux"):  # Linux
+    ffmpeg_exec = basedir+'/ffmpeg'
+    raise EnvironmentError("Unsupported operating system")
+
 ffmpeg_dir = ffmpeg_exec
 
 from appdirs import user_config_dir
@@ -248,12 +246,16 @@ class kitsu_settings(QtWidgets.QWidget):
                 
     def check_connection(self):
         if self.access_token:
-            token = {'access_token': self.access_token}
-            gazu.client.set_host(self.url+'/api')
-            gazu.client.set_tokens(token)
-            user = gazu.client.get_current_user()
-            self.parent.connection_status = True
-            return True
+            try:
+                token = {'access_token': self.access_token}
+                gazu.client.set_host(self.url+'/api')
+                gazu.client.set_tokens(token)
+                user = gazu.client.get_current_user()
+                self.parent.connection_status = True
+                return True
+            except:
+                self.parent.connection_status = True
+                return False
         else:
             self.parent.connection_status = True
             return False
