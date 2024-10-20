@@ -8,10 +8,11 @@ import requests
 import zipfile
 import shutil
 
-from PyQt5 import QtWidgets, QtCore, QtGui, uic
+from PyQt5 import QtWidgets, QtCore, QtGui, uic, QtSvg
 from PyQt5.QtGui import QDoubleValidator
 from PyQt5.QtCore import Qt, QPoint, QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QMessageBox
+
 
 import gazu
 
@@ -63,6 +64,20 @@ os.makedirs(config_dir, exist_ok=True)
 config_file = os.path.join(config_dir, f"{username}_settings.conf")
 
 print(f"Configuration file path: {config_file}")
+
+
+
+
+class LoadingIcon(QtSvg.QSvgWidget):
+    def __init__(self):
+        super().__init__()
+        self.__initUi()
+
+    def __initUi(self):
+        r = self.renderer()
+        r.setFramesPerSecond(60)
+        ico_filename = os.path.join(os.path.dirname(__file__),'icons', 'loading.svg')
+        r.load(ico_filename)
 
 class Updater(QThread):
     update_progress = pyqtSignal(str)
@@ -137,7 +152,6 @@ class T_Extractor(QtCore.QThread):
             if os.path.exists(temp_jpeg_path):
                 os.remove(temp_jpeg_path)
             self.finished.emit(pixmap)  # Emit finished signal when done
-
 
 class Worker(QObject):
     finished = pyqtSignal()  # Signal to indicate when the worker is done
@@ -450,15 +464,10 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         self.settings_button.released.connect(self.show_settings)
         self.connection_status = None
 
-        # Load your image
-        self.pixmap = QtGui.QPixmap(os.path.join(os.path.dirname(__file__),'icons', 'loading.svg'))
-        self.image_label.setPixmap(self.pixmap)
-        self.image_label.setFixedSize(20,20)
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self.rotate_label)
-        self.timer.start(10)  # Rotate every second
 
-        self.angle = 0  # Initial angle
+        self.loading_icon = LoadingIcon()
+        self.load_icon_frame.layout().replaceWidget(self.image_label, self.loading_icon)
+        self.image_label = self.loading_icon
 
 
         self.input_files = None
@@ -478,6 +487,7 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         self.file_drop.deleteLater()
         self.publish_button.released.connect(self.launch_publisher)
         #self.file_drop.mouseDoubleClickEvent.connect(self.file_browse)
+        
 
         self.ks.check_connection()
 
@@ -731,7 +741,7 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
         #self.file_manager.setPixmap(thumbnail)
         
         
-    def find_or_create_child(self, parent_item, child_name):
+    def find_or_create_child(self, parent_item, child_name, thumbnail=None):
         """ Helper function to find a child with the given name or create a new one """
         for i in range(parent_item.childCount()):
             child = parent_item.child(i)
@@ -835,13 +845,18 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
                     'seq': seq,
                     'element': task['entity']['name'],
                     'task': task['task_type']['name'],
-                    'context_id': task['id']
+                    'context_id': task['id'],
+                    'preview_id': task['entity']['preview_file_id'],
                 }
                 data.append(dd)
 
             root_items = {}
             self.update_log('Building Tree View...')
             for item_data in data:
+                if not self.is_scanning:
+                    self.update_log('User interupted task loading !', 'red')
+                    self.image_label.setVisible(False)
+                    return False
                 # Create hierarchy: Project > Type > Sequence > Element > Task
                 project_name = item_data.get('project', 'Unknown Project')  # Add a project key
                 type_name = item_data['type']
@@ -849,6 +864,7 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
                 element_name = item_data['element']
                 task_name = item_data['task']
                 context_id = item_data['context_id']
+                preview_id = item_data['preview_id']
 
                 # Create or get the Project level item
                 if project_name not in root_items:
@@ -871,7 +887,19 @@ class kitsu_publisher_standalone_gui(QtWidgets.QMainWindow):
 
                 # Create or get the Element level item
                 element_item = self.find_or_create_child(seq_item, element_name)
+                
+                temp_file = tempfile.NamedTemporaryFile(delete=False, prefix=element_name,suffix='.png')  # Keep the file after closing
+                image = None
+                try:
+                    gazu.files.download_preview_file_thumbnail(preview_id, temp_file.name)  # Use temp_file.name              
+                    image = QtGui.QImage(temp_file.name)  # Use temp_file.name to read the image
+                except:
+                    pass
 
+                if image:
+                    element_item.setData(0,1, image.scaled(64,27,Qt.AspectRatioMode.KeepAspectRatioByExpanding))
+                temp_file.close()
+                os.remove(temp_file.name)
                 # Create the Task level item
                 task_item = QtWidgets.QTreeWidgetItem([task_name])
                 # Store the context_id in the task item for easy retrieval

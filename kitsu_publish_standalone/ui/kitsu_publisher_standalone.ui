@@ -1458,7 +1458,7 @@ QPushButton::pressed
                  </widget>
                 </item>
                 <item>
-                 <widget class="QFrame" name="gridFrame">
+                 <widget class="QFrame" name="load_icon_frame">
                   <property name="sizePolicy">
                    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                     <horstretch>0</horstretch>
@@ -1500,6 +1500,18 @@ QPushButton::pressed
                        <horstretch>0</horstretch>
                        <verstretch>0</verstretch>
                       </sizepolicy>
+                     </property>
+                     <property name="minimumSize">
+                      <size>
+                       <width>20</width>
+                       <height>20</height>
+                      </size>
+                     </property>
+                     <property name="maximumSize">
+                      <size>
+                       <width>20</width>
+                       <height>20</height>
+                      </size>
                      </property>
                      <property name="scaledContents">
                       <bool>false</bool>
@@ -1790,6 +1802,8 @@ p, li { white-space: pre-wrap; }
    </layout>
   </widget>
  </widget>
- <resources/>
+ <resources>
+  <include location="../resources.qrc"/>
+ </resources>
  <connections/>
 </ui>
